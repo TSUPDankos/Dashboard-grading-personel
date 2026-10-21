@@ -66,6 +66,9 @@ body{margin:0;width:100%;color:var(--ink);font-family:"Work Sans",sans-serif;bac
 .modal input,.modal select,.modal textarea{width:100%;min-height:42px;border:1px solid #dbe3ee;border-radius:9px;padding:0 12px;font:inherit;font-size:14px;outline:none;background:#fff}
 .modal textarea{min-height:70px;padding:10px 12px;resize:vertical}
 .modal input:focus,.modal select:focus,.modal textarea:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+input.uppercase-input{text-transform:uppercase}
+input.uppercase-input::placeholder{text-transform:none;letter-spacing:0}
+select.uppercase-input{text-transform:uppercase}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:22px}
 .btn-add-line{margin-top:8px;width:100%;min-height:38px;background:#eff6ff;color:#2563eb;border:1px dashed #93c5fd;border-radius:9px;font:inherit;font-weight:700;font-size:13px;cursor:pointer;transition:.15s}
 .btn-add-line:hover{background:#dbeafe;border-color:#2563eb}
@@ -633,10 +636,24 @@ body.guest-mode .reminder-chip::after{content:" 🔒";font-size:10px}
   <div class="modal">
     <h3 id="personel-modal-title">Tambah Personel</h3>
     <input type="hidden" id="p-edit-mode" value="">
-    <label>Employee ID</label><input id="p-id" placeholder="EMP001">
-    <label>Employee Name</label><input id="p-nama" placeholder="Nama lengkap">
-    <label>Job Title Name</label><input id="p-jabatan" placeholder="Operator Granulasi">
-    <label>Job Level Name</label><input id="p-level" placeholder="Operator">
+    <label>Employee ID</label>
+    <input id="p-id" class="uppercase-input" placeholder="EMP001"
+           oninput="this.value=this.value.toUpperCase()">
+    <label>Employee Name</label>
+    <input id="p-nama" class="uppercase-input" placeholder="Nama lengkap"
+           oninput="this.value=this.value.toUpperCase()">
+
+    <label>Job Title Name</label>
+    <select id="p-jabatan" class="field uppercase-input"></select>
+    <button type="button" class="btn-add-line" onclick="tambahJobTitleBaru()">
+      ➕ Tambah Job Title Baru
+    </button>
+
+    <label>Job Level Name</label>
+    <select id="p-level" class="field uppercase-input"></select>
+    <button type="button" class="btn-add-line" onclick="tambahJobLevelBaru()">
+      ➕ Tambah Job Level Baru
+    </button>
 
     <label>Organization Name</label>
     <select id="p-org" class="field">
@@ -706,7 +723,7 @@ body.guest-mode .reminder-chip::after{content:" 🔒";font-size:10px}
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbz1ATPLeS2hCk7tUg6AhkETJ7R4OkE1bFT72s5eWzBMmzZyAxt9oCgusHoowakyoeJoHQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbx8H3KZXqSo--KFJyJ7__v9v9ZxBkTOGHgkLHc-KkuZtYJLt-L-zd1TCaB2BI_EpP7s_Q/exec";
 const BATAS_HARI_PERLU_DINILAI = 90;
 
 /* ============================================================
@@ -729,6 +746,28 @@ const MASTER_ORGANIZATIONS = [
   "Production Line 07",
   "Production Line 08",
   "Production Line 09"
+];
+
+/* ============================================================
+   ✅ MASTER JOB LEVEL & JOB TITLE (default list, bisa ditambah)
+   ============================================================ */
+const MASTER_JOB_LEVELS = [
+  "OPERATOR",
+  "SENIOR OPERATOR",
+  "LEADER",
+  "SUPERVISOR",
+  "MANAGER",
+  "STAFF"
+];
+
+const MASTER_JOB_TITLES = [
+  "OPERATOR PRODUKSI",
+  "OPERATOR GRANULASI",
+  "OPERATOR TABLET",
+  "OPERATOR FILLING",
+  "OPERATOR PACKAGING",
+  "TEKNISI",
+  "QC ANALYST"
 ];
 
 const GRADE_LEVELS = { A: "Operator baru", B: "Start dan stop mesin", C: "Identifikasi masalah dan solusi", D: "Trainer" };
@@ -966,6 +1005,104 @@ function buildOrganizationMap() {
 
 function sortOrganizations(list) {
   return list.sort((a, b) => a.localeCompare(b, "id", { sensitivity: "base", numeric: true }));
+}
+
+/* ============================================================
+   ✅ CUSTOM JOB TITLE & JOB LEVEL (localStorage)
+   ============================================================ */
+function ambilCustomJobTitles() {
+  try { return JSON.parse(localStorage.getItem("customJobTitles") || "[]"); }
+  catch (e) { return []; }
+}
+function simpanCustomJobTitles(list) {
+  localStorage.setItem("customJobTitles", JSON.stringify(list));
+}
+function ambilCustomJobLevels() {
+  try { return JSON.parse(localStorage.getItem("customJobLevels") || "[]"); }
+  catch (e) { return []; }
+}
+function simpanCustomJobLevels(list) {
+  localStorage.setItem("customJobLevels", JSON.stringify(list));
+}
+
+function ambilSemuaJobTitles() {
+  const map = new Map();
+  MASTER_JOB_TITLES.forEach(v => { const u = String(v).toUpperCase(); if (u) map.set(u, u); });
+  ambilCustomJobTitles().forEach(v => { const u = String(v).toUpperCase(); if (u) map.set(u, u); });
+  allData.personel.forEach(p => {
+    const v = String(p["Job Title Name"] || "").trim().toUpperCase();
+    if (v) map.set(v, v);
+  });
+  return [...map.values()].sort((a, b) => a.localeCompare(b, "id", { sensitivity: "base" }));
+}
+
+function ambilSemuaJobLevels() {
+  const map = new Map();
+  MASTER_JOB_LEVELS.forEach(v => { const u = String(v).toUpperCase(); if (u) map.set(u, u); });
+  ambilCustomJobLevels().forEach(v => { const u = String(v).toUpperCase(); if (u) map.set(u, u); });
+  allData.personel.forEach(p => {
+    const v = String(p["Job Level Name"] || "").trim().toUpperCase();
+    if (v) map.set(v, v);
+  });
+  return [...map.values()].sort((a, b) => a.localeCompare(b, "id", { sensitivity: "base" }));
+}
+
+function isiJobTitleDropdown(selected = "") {
+  const sel = document.getElementById("p-jabatan");
+  if (!sel) return;
+  const list = ambilSemuaJobTitles();
+  sel.innerHTML = '<option value="">— Pilih Job Title —</option>' +
+    list.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+  const target = String(selected || "").trim().toUpperCase();
+  sel.value = (target && list.includes(target)) ? target : "";
+}
+
+function isiJobLevelDropdown(selected = "") {
+  const sel = document.getElementById("p-level");
+  if (!sel) return;
+  const list = ambilSemuaJobLevels();
+  sel.innerHTML = '<option value="">— Pilih Job Level —</option>' +
+    list.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+  const target = String(selected || "").trim().toUpperCase();
+  sel.value = (target && list.includes(target)) ? target : "";
+}
+
+function tambahJobTitleBaru() {
+  if (blockGuest()) return;
+  const input = prompt("Masukkan Job Title baru:\n\nContoh: OPERATOR GRANULASI", "");
+  if (input === null) return;
+  const nama = input.trim().toUpperCase();
+  if (!nama) return toast("Job Title tidak boleh kosong", true);
+  const list = ambilSemuaJobTitles();
+  if (list.includes(nama)) {
+    toast("Job Title tersebut sudah ada", true);
+    isiJobTitleDropdown(nama);
+    return;
+  }
+  const custom = ambilCustomJobTitles();
+  custom.push(nama);
+  simpanCustomJobTitles(custom);
+  toast(`✓ Job Title "${nama}" berhasil ditambahkan`);
+  isiJobTitleDropdown(nama);
+}
+
+function tambahJobLevelBaru() {
+  if (blockGuest()) return;
+  const input = prompt("Masukkan Job Level baru:\n\nContoh: SENIOR OPERATOR", "");
+  if (input === null) return;
+  const nama = input.trim().toUpperCase();
+  if (!nama) return toast("Job Level tidak boleh kosong", true);
+  const list = ambilSemuaJobLevels();
+  if (list.includes(nama)) {
+    toast("Job Level tersebut sudah ada", true);
+    isiJobLevelDropdown(nama);
+    return;
+  }
+  const custom = ambilCustomJobLevels();
+  custom.push(nama);
+  simpanCustomJobLevels(custom);
+  toast(`✓ Job Level "${nama}" berhasil ditambahkan`);
+  isiJobLevelDropdown(nama);
 }
 
 function hitungSkorDariDetail(r) {
@@ -2686,8 +2823,9 @@ function openPersonelModal() {
   document.getElementById("personel-modal-title").textContent = "Tambah Personel";
   document.getElementById("p-edit-mode").value = "";
   document.getElementById("p-id").value = ""; document.getElementById("p-id").disabled = false;
-  document.getElementById("p-nama").value = ""; document.getElementById("p-jabatan").value = "";
-  document.getElementById("p-level").value = "";
+  document.getElementById("p-nama").value = "";
+  isiJobTitleDropdown();
+  isiJobLevelDropdown();
   isiOrganizationDropdownPersonel();
   document.getElementById("p-gender").value = ""; document.getElementById("p-start").value = "";
   document.getElementById("p-status").value = "Aktif";
@@ -2699,10 +2837,11 @@ function editPersonel(id) {
   if (!p) return;
   document.getElementById("personel-modal-title").textContent = "Edit Personel";
   document.getElementById("p-edit-mode").value = id;
-  document.getElementById("p-id").value = p["Employee ID"] || ""; document.getElementById("p-id").disabled = true;
-  document.getElementById("p-nama").value = p["Employee Name"] || "";
-  document.getElementById("p-jabatan").value = p["Job Title Name"] || "";
-  document.getElementById("p-level").value = p["Job Level Name"] || "";
+  document.getElementById("p-id").value = String(p["Employee ID"] || "").toUpperCase();
+  document.getElementById("p-id").disabled = true;
+  document.getElementById("p-nama").value = String(p["Employee Name"] || "").toUpperCase();
+  isiJobTitleDropdown(p["Job Title Name"] || "");
+  isiJobLevelDropdown(p["Job Level Name"] || "");
   isiOrganizationDropdownPersonel(p["Organization Name"] || "");
   document.getElementById("p-gender").value = p["Gender"] || "";
   document.getElementById("p-start").value = String(p["Start Date"] || "").slice(0, 10);
@@ -2714,10 +2853,10 @@ async function savePersonel() {
   const editMode = document.getElementById("p-edit-mode").value;
   const tag = getUserTag();
   const data = {
-    nik: document.getElementById("p-id").value.trim(),
-    nama: document.getElementById("p-nama").value.trim(),
-    jabatan: document.getElementById("p-jabatan").value.trim(),
-    jobLevel: document.getElementById("p-level").value.trim(),
+    nik: document.getElementById("p-id").value.trim().toUpperCase(),
+    nama: document.getElementById("p-nama").value.trim().toUpperCase(),
+    jabatan: document.getElementById("p-jabatan").value.trim().toUpperCase(),
+    jobLevel: document.getElementById("p-level").value.trim().toUpperCase(),
     organization: getOrgPersonelValue(),
     gender: document.getElementById("p-gender").value,
     startDate: document.getElementById("p-start").value,
