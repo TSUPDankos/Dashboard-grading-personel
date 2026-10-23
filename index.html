@@ -812,7 +812,7 @@ body.guest-mode .reminder-chip::after{content:" 🔒";font-size:10px}
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbxGrs2Vm1bW3ggAQWJNpctwR0PaCtsb8CbJYPpQyHI1DuY7hkJnmj0XIY2Co8GFtQFYyw/exec"; // ⚠️ JANGAN LUPA ISI DENGAN URL WEB APP ANDA
+const API_URL = "https://script.google.com/macros/s/AKfycby7__bq7sNZc4AykX82gp2X2ww4zLvSNayETcMInmA8-O3hMa-nRPfH0FKyHjyMPML7nQ/exec"; // ⚠️ JANGAN LUPA ISI DENGAN URL WEB APP ANDA
 const BATAS_HARI_PERLU_DINILAI = 90;
 
 /* ============================================================
@@ -2585,26 +2585,37 @@ async function onMesinChange() {
   const empId = document.getElementById("form-employee").value;
   const wrapper = document.getElementById("form-kriteria-wrapper");
   const empty = document.getElementById("form-kriteria-empty");
+  
   if (!area || !mesin) {
     wrapper.style.display = "none"; empty.style.display = "none";
     kriteriaAktif = []; checkedKriteria = new Set();
     document.getElementById("form-btn-simpan").disabled = true;
     return;
   }
+  
   document.getElementById("form-subtitle").textContent = `${area} · ${mesin}`;
   const body = document.getElementById("form-grade-sections");
   body.innerHTML = '<div style="text-align:center;padding:30px;color:#64748b">Memuat kriteria...</div>';
   wrapper.style.display = "block"; empty.style.display = "none";
+  
   try {
     const url = API_URL + "?action=getKriteria&area=" + encodeURIComponent(area) + "&mesin=" + encodeURIComponent(mesin);
     const res = await fetch(url);
     const data = await res.json();
-    if (!data.ok || !data.kriteria || !data.kriteria.length) {
-      wrapper.style.display = "none"; empty.style.display = "block";
-      kriteriaAktif = []; checkedKriteria = new Set();
-      document.getElementById("form-btn-simpan").disabled = true;
+    
+    if (!data.ok) {
+      wrapper.style.display = "none"; 
+      empty.style.display = "block";
+      empty.innerHTML = `⚠️ <strong style="color:#dc2626">${escapeHtml(data.message)}</strong><br><span style="font-size:11px">Pastikan Sheet form dengan nama yang sesuai ada di Spreadsheet.</span>`;
       return;
     }
+    
+    if (!data.kriteria || !data.kriteria.length) {
+      wrapper.style.display = "none"; empty.style.display = "block";
+      empty.innerHTML = `⚠️ Belum ada kriteria untuk <strong>Area + Mesin</strong> ini.<br><span style="font-size:11px">Tambahkan item penilaian di sheet <strong>${area}</strong>.</span>`;
+      return;
+    }
+    
     kriteriaAktif = data.kriteria;
     let riwayatTerakhir = null;
     if (empId) {
@@ -2615,8 +2626,10 @@ async function onMesinChange() {
       ).sort((a, b) => String(b["Timestamp"]).localeCompare(String(a["Timestamp"])));
       if (matching.length > 0) riwayatTerakhir = matching[0];
     }
+    
     checkedKriteria = new Set(); catatanKriteria = {}; tanggalKriteria = {};
     gradeTerbuka = ["A"]; gradeLulus = new Set();
+    
     if (riwayatTerakhir && riwayatTerakhir["Detail Kriteria"]) {
       let detailLama = [];
       try { detailLama = JSON.parse(riwayatTerakhir["Detail Kriteria"]); } catch(e) { detailLama = []; }
@@ -2628,17 +2641,15 @@ async function onMesinChange() {
           if (d.catatan) catatanKriteria[kriteriaMatch] = d.catatan;
         }
       });
-      cekKelulusanGrade();
-      if (checkedKriteria.size > 0) {
-        const gradeLama = [...gradeLulus].sort();
-        toast(`✓ Melanjutkan penilaian. Grade ${gradeLama.join(", ")} sudah lulus sebelumnya.`, false, "info");
-      }
     }
+    
     renderGradeSections();
     document.getElementById("form-btn-reset").style.display = "";
   } catch (e) {
     console.error(e);
-    body.innerHTML = `<div style="text-align:center;padding:30px;color:#dc2626">Gagal memuat: ${e.message}</div>`;
+    wrapper.style.display = "none"; 
+    empty.style.display = "block";
+    empty.innerHTML = `⚠️ Error koneksi: <strong>${e.message}</strong>`;
   }
 }
 function renderGradeSections() {
@@ -2983,7 +2994,6 @@ async function setStatus(nik, status) {
   const p = allData.personel.find(x => String(x["Employee ID"]) === String(nik));
   const nm = p ? p["Employee Name"] : nik;
   
-  // PERBAIKAN: Langsung gunakan status yang dikirim dari tombol
   const statusTarget = status;
   const verb = statusTarget === "Non aktif" ? "non-aktifkan" : "aktifkan kembali";
   
