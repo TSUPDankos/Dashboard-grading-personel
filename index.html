@@ -812,7 +812,7 @@ body.guest-mode .reminder-chip::after{content:" 🔒";font-size:10px}
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycby7__bq7sNZc4AykX82gp2X2ww4zLvSNayETcMInmA8-O3hMa-nRPfH0FKyHjyMPML7nQ/exec"; // ⚠️ JANGAN LUPA ISI DENGAN URL WEB APP ANDA
+const API_URL = "https://script.google.com/macros/s/AKfycbx8H3KZXqSo--KFJyJ7__v9v9ZxBkTOGHgkLHc-KkuZtYJLt-L-zd1TCaB2BI_EpP7s_Q/exec"; // 
 const BATAS_HARI_PERLU_DINILAI = 90;
 
 /* ============================================================
@@ -1673,21 +1673,39 @@ function renderOverview(rows) {
     if (!groups[area][mesin]) groups[area][mesin] = { A:0, B:0, C:0, D:0 };
     groups[area][mesin][gradeTertinggi]++;
   });
+  
   const html = Object.entries(groups).map(([area, mesins]) => `
     <div class="process-group">
       <div class="process-title"><strong>${escapeHtml(area)}</strong><span>${Object.keys(mesins).length} mesin</span></div>
-      <div class="machine-grid">${Object.entries(mesins).map(([m, c]) => `
+      <div class="machine-grid">${Object.entries(mesins).map(([m, c]) => {
+        
+        // Logika pewarnaan grade (jika > 0 beri warna, jika 0 abu-abu)
+        const styleA = c.A > 0 ? `background:${GRADE_COLORS.A}15;color:${GRADE_COLORS.A}` : '';
+        const strongA = c.A > 0 ? `color:${GRADE_COLORS.A}` : '';
+        
+        const styleB = c.B > 0 ? `background:${GRADE_COLORS.B}15;color:${GRADE_COLORS.B}` : '';
+        const strongB = c.B > 0 ? `color:${GRADE_COLORS.B}` : '';
+        
+        const styleC = c.C > 0 ? `background:${GRADE_COLORS.C}15;color:${GRADE_COLORS.C}` : '';
+        const strongC = c.C > 0 ? `color:${GRADE_COLORS.C}` : '';
+        
+        const styleD = c.D > 0 ? `background:${GRADE_COLORS.D}15;color:${GRADE_COLORS.D}` : '';
+        const strongD = c.D > 0 ? `color:${GRADE_COLORS.D}` : '';
+
+        return `
         <article class="machine-card">
           <div class="machine-name">${escapeHtml(m)}</div>
           <div class="machine-meta">${escapeHtml(area)}</div>
           <div class="machine-grade-grid">
-            <div class="machine-grade">A<strong>${c.A}</strong></div>
-            <div class="machine-grade">B<strong>${c.B}</strong></div>
-            <div class="machine-grade">C<strong>${c.C}</strong></div>
-            <div class="machine-grade">D<strong>${c.D}</strong></div>
+            <div class="machine-grade" style="${styleA}">A<strong style="${strongA}">${c.A}</strong></div>
+            <div class="machine-grade" style="${styleB}">B<strong style="${strongB}">${c.B}</strong></div>
+            <div class="machine-grade" style="${styleC}">C<strong style="${strongC}">${c.C}</strong></div>
+            <div class="machine-grade" style="${styleD}">D<strong style="${strongD}">${c.D}</strong></div>
           </div>
-        </article>`).join("")}</div>
+        </article>`;
+      }).join("")}</div>
     </div>`).join("");
+  
   document.getElementById("machine-overview").innerHTML = html || '<div class="empty-row" style="padding:20px">Belum ada data penilaian.</div>';
 }
 
