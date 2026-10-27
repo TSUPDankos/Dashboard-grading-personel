@@ -812,7 +812,7 @@ body.guest-mode .reminder-chip::after{content:" 🔒";font-size:10px}
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbx8H3KZXqSo--KFJyJ7__v9v9ZxBkTOGHgkLHc-KkuZtYJLt-L-zd1TCaB2BI_EpP7s_Q/exec"; // 
+const API_URL = "https://script.google.com/macros/s/AKfycbzqINuw9fsXCb6Ln3TK_Cgj-Zet6l-dC1chwy-GUgoueiZ8FH2daowpoSu6z3CJEIyhZA/exec"; // 
 const BATAS_HARI_PERLU_DINILAI = 90;
 
 /* ============================================================
@@ -1792,14 +1792,26 @@ function renderMachine(rows) {
   const tb = document.getElementById("machine-table-body");
   const list = Object.values(groups);
   if (!list.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Belum ada data.</td></tr>'; return; }
-  tb.innerHTML = list.map((g, i) => `
+  
+  tb.innerHTML = list.map((g, i) => {
+    // Logika pewarnaan tabel
+    const styleA = g.A > 0 ? `background:${GRADE_COLORS.A}15;color:${GRADE_COLORS.A};font-weight:700;` : '';
+    const styleB = g.B > 0 ? `background:${GRADE_COLORS.B}15;color:${GRADE_COLORS.B};font-weight:700;` : '';
+    const styleC = g.C > 0 ? `background:${GRADE_COLORS.C}15;color:${GRADE_COLORS.C};font-weight:700;` : '';
+    const styleD = g.D > 0 ? `background:${GRADE_COLORS.D}15;color:${GRADE_COLORS.D};font-weight:700;` : '';
+
+    return `
     <tr>
       <td>${i+1}</td>
       <td class="employee-name">${escapeHtml(g.mesin)}</td>
       <td><span class="line-pill">${escapeHtml(g.area)}</span></td>
-      <td>${g.A}</td><td>${g.B}</td><td>${g.C}</td><td>${g.D}</td>
+      <td style="text-align:center; ${styleA}">${g.A}</td>
+      <td style="text-align:center; ${styleB}">${g.B}</td>
+      <td style="text-align:center; ${styleC}">${g.C}</td>
+      <td style="text-align:center; ${styleD}">${g.D}</td>
       <td><span class="count-pill">${g.total} personel</span></td>
-    </tr>`).join("");
+    </tr>`;
+  }).join("");
 }
 
 function renderMatrix(rows) {
